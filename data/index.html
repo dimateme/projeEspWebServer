@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Système Atmosphérique Connectés</title>
+        <link type="text/css" rel="stylesheet" href="index.css">
+        <script type="text/javascript" src="script.js"></script>
+        
+    </head>
+    <body>
+        <div class="Main">
+            <div class="conteneur">
+                <div class="logo">
+                    <img src="logo_SAC.png" alt=""/>
+                </div>
+                <div class="bois">
+                    <h2>Type de Bois :</h2>
+                    <form class="formulaire" >
+                        <input type="text" id="rechercherbois" placeholder="Recherchez le bois" onkeyup="filterItems(this);">
+                        <br>
+                        <br>
+                        <select name="liste_bois" id="liste_bois" class="liste_bois" onchange="getFromESP_getWoodCaracteristiques()" size="3">
+                            <option value=""></option>
+                        </select>
+                    </form>
+                    <h2>Caractéristiques : </h2>
+                    <div class="caracteristique">
+                        <table class="tableau_caracteristique">
+                            <tr>
+                                <td>Bois :</td>
+                                <td><label for="" id="nomBois"></label></td>
+                            </tr>
+                            <tr>
+                                <td>Type :</td>
+                                <td><label for="" id="typeBois"></label></td>
+                            </tr>
+                            <tr>
+                                <td>Origine :</td>
+                                <td><label for="" id="origineBois"></label></td>
+                            </tr>
+                            <tr>
+                                <td>Temps de séchage :</td>
+                                <td><label for="" id="tempsBois"></label></td>
+                            </tr>
+                            <tr>
+                                <td>Température min:</td>
+                                <td><label for="" id="temperatureBois"></label></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="conteneur">
+                <div class="four">
+                    <h2>Contrôle du four de séchage </h2>
+                    <div class="temperature">
+                        <div class="affichage_temp">
+                            <h4 class="temp_text" id="temp_text">Température du four</h4>
+                            <h3 class="temp_celcius" id="temp_celcius">23° Celcius</h3><br/>
+                        </div>
+                        <div class="controle_Info_Temperature_Button">
+                            <button class="demarrage"  id="demarrage" onclick="doAction('startAction')">Démarrage du Four</button>
+                        </div>
+                        <br/><br/><br/>
+                        <div class="information_bois conteneur">
+                            <label class="alignleft">Erable</label>
+                            <label class="aligncenter"><span id="compteurSeconde">0</span> s /20 s  (min: 25 Celcius)</label>
+                            <label class="alignright"> O O O </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <br>
+        <br>
+       
+        <script type="text/javascript">
+        getFromESP_getWoodOptions();
+        getFromESP_getWoodCaracteristiques();
+        </script>
+    </body>
+</html>
