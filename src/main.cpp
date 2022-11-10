@@ -28,7 +28,7 @@ MyButton *myButtonReset = NULL;
 #define GPIO_PIN_LED_OK_GREEN             26 //GPIO14
 #define GPIO_PIN_LED_HEAT_BLUE        25 //GPIO27
  
-const int led[3] = {GPIO_PIN_LED_LOCK_ROUGE, GPIO_PIN_LED_OK_GREEN, GPIO_PIN_LED_HEAT_BLUE};
+
 //Pour la gestion du serveur ESP32
 #include "MyServer.h"
 MyServer *myServer = NULL;
@@ -38,20 +38,14 @@ TemperatureStub *myTemp;
 const char *SSID = "SAC_";
 const char *PASSWORD = "sac_";
 
-
-
-
-//int random = rand() % 10 + 1;
-// Set LED GPIO
-
-// Stores LED state
-
-char buffer[100];
+char bufferTemperature[100];
 char bufferCompteur[100];
-bool ledOn = false;
-bool liretempeture = false;
+int demarrageFoure = 0;
+float temp=0;
+
+
 bool demarrerFour = false;
-int nbSecondes =0;
+bool lireTemperature = false;
 int compteur = 20;
 String ssIDRandom;
 
@@ -67,35 +61,29 @@ std::string CallBackMessageListener(string message) {
     string actionToDo = getValue(message, ' ', 0);
     string arg1 = getValue(message, ' ', 1);
     
-    float temp = myTemp->getTemperature();
-    sprintf(buffer, "%4.1f °C", temp);
-    std::string tempDuFour = "22"; //Lire le senseur de température
+    
     if (string(actionToDo.c_str()).compare(string("askTempFour")) == 0) {
-      //Serial.println(buffer);
-      return(buffer); 
-      
+      if (lireTemperature == true)
+      {
+        return(bufferTemperature); 
+      }
+    
     }
     
     if (string(actionToDo.c_str()).compare(string("startAction")) == 0) {
       demarrerFour = true;
+      demarrageFoure = 7;
       return("");
     }
     if (string(actionToDo.c_str()).compare(string("askCompteur")) == 0) {
-      
-      
-      while (compteur > 0)
+      if (demarrageFoure == 7)
       {
-        if(demarrerFour==true)
-        {
-          compteur--;
-        
-        }
-        sprintf(bufferCompteur, "%d", compteur);
+        return(bufferCompteur);
+      }else
+      {
+        sprintf(bufferCompteur, "%d", 20);
         return(bufferCompteur);
       }
-      compteur = 21;
-      
-      
         
     }
   
@@ -106,7 +94,12 @@ std::string CallBackMessageListener(string message) {
 void setup() { 
     Serial.begin(9600);
     delay(100);
-   ledOn=false;
+    //Initialisation des LED statuts
+    pinMode(GPIO_PIN_LED_LOCK_ROUGE, OUTPUT);
+    pinMode(GPIO_PIN_LED_OK_GREEN, OUTPUT);
+    pinMode(GPIO_PIN_LED_HEAT_BLUE, OUTPUT);
+  
+   lireTemperature=true;
  //Connection au WifiManager
     String ssIDRandom, PASSRandom;
     String stringRandom;
@@ -126,7 +119,19 @@ char strToPrint[128];
         Serial.println("Erreur de connexion.");
         }
     else {
-        Serial.println("Connexion Établie.");
+            for (size_t i = 0; i < 3; i++)
+            {
+                digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, HIGH);
+                digitalWrite(GPIO_PIN_LED_OK_GREEN, HIGH);
+                digitalWrite(GPIO_PIN_LED_HEAT_BLUE, HIGH);
+                delay(1000);
+                digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, LOW);
+                digitalWrite(GPIO_PIN_LED_OK_GREEN, LOW);
+                digitalWrite(GPIO_PIN_LED_HEAT_BLUE, LOW);
+                delay(1000);
+            }
+            
+          Serial.println("Connexion Établie.");
         }
 
 //gestion des boutons
@@ -135,13 +140,8 @@ char strToPrint[128];
     int sensibilisationButtonReset = myButtonReset->autoSensibilisation();
     
 
-    //Initialisation des LED statuts
-    /*pinMode(led[0], OUTPUT);
-    pinMode(led[1], OUTPUT);
-    pinMode(led[2], OUTPUT);*/
-    pinMode(GPIO_PIN_LED_LOCK_ROUGE, OUTPUT);
-    pinMode(GPIO_PIN_LED_OK_GREEN, OUTPUT);
-    pinMode(GPIO_PIN_LED_HEAT_BLUE, OUTPUT);
+    
+    
     //température
     myTemp = new TemperatureStub();
     myTemp->init(27, DHT22);
@@ -153,29 +153,40 @@ char strToPrint[128];
 }
 
 void loop() {
-  float temp = myTemp->getTemperature();
-      sprintf(buffer, "%4.1f °C", temp);
-      //Serial.println(buffer);
-      delay(1000);
+  if (lireTemperature == true)
+  {
+    temp = myTemp->getTemperature();
+    delay(1000);
+    sprintf(bufferTemperature, "%4.1f °C", temp);
+    Serial.println(bufferTemperature);
+    
+  }
+  if(demarrageFoure == 7){
+    while (compteur>0)
+    {
+      if ((24.5 >= temp) && (temp >= 22.5))
+      {
+        delay(1000);
+        compteur--;
+        sprintf(bufferCompteur, "%d", compteur);
+      }
+      sprintf(bufferCompteur, "%d", compteur);
+      
+      
+    }
+    if (compteur < 0){
+      demarrageFoure = 0;
+      compteur = 20;
+    }
+  }
+      
   
   //int buttonActionT8 = myButtonT8->checkMyButton();
   int buttonReset = myButtonReset->checkMyButton();
   if(buttonReset > 2){
     Serial.println("Button Action pressed");
-    ledOn = false;
+    //ledOn = false;
   }
-  if(ledOn){
-    delay(nbSecondes * 1000);
-    digitalWrite(GPIO_PIN_LED_LOCK_ROUGE,HIGH);
-    delay(nbSecondes * 1000);
-    digitalWrite(GPIO_PIN_LED_LOCK_ROUGE,LOW);
-    digitalWrite(GPIO_PIN_LED_OK_GREEN,HIGH);
-    delay(nbSecondes * 1000);
-    digitalWrite(GPIO_PIN_LED_OK_GREEN,LOW);
-    digitalWrite(GPIO_PIN_LED_HEAT_BLUE,HIGH);
-    delay(nbSecondes * 1000);
-    digitalWrite(GPIO_PIN_LED_HEAT_BLUE,LOW);
-  }
-
+  
       delay(500);
   }

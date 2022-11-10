@@ -70,7 +70,7 @@ setInterval(function getCompteur(){
     };
     xhttp.open("GET", "lireCompteure", true);
     xhttp.send();
-   }, 3000);
+   }, 1000);
 
 
    var optionsCache = [];
