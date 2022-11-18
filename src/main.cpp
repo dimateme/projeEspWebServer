@@ -2,28 +2,50 @@
 #include <iostream>
 #include <string>
 #include <Adafruit_Sensor.h>
-#include <DHT.h>
 #include <Arduino.h>
 #include "TemperatureStub.h"
 #include <ArduinoJson.h>
-#include "MyButton.h"
+
 #include "myFunctions.cpp" //fonctions utilitaires
 
+//test oled
+#include <Adafruit_SSD1306.h>
 
+const byte PORT = 80;
+
+#include "MyOled.h"
+MyOled *myOled = NULL;
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+uint8_t RST=4;
+TwoWire twi = TwoWire(1);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+
+#include "MyOledViewWifiAp.h"
+MyOledViewWifiAp *myOledViewWifiAp = NULL;
+Adafruit_SSD1306 *adafruit = NULL;
 using namespace std;
 
 #include <HTTPClient.h>
 #include <WiFiManager.h>
+
 WiFiManager wm;
 #define WEBSERVER_H
+
+
 //sensor dhht22
+#include <DHT.h>
 #define DHTPIN 27
 #define DHTTYPE    DHT22
+TemperatureStub *myTemp;
 
 //mes boutons
+#include "MyButton.h"
 MyButton *myButtonAction = NULL;
 MyButton *myButtonReset = NULL;
-//Définition des trois leds de statut
+
+//Définition des trois leds
 #define GPIO_PIN_LED_LOCK_ROUGE         12 //GPIO12
 #define GPIO_PIN_LED_OK_GREEN             26 //GPIO14
 #define GPIO_PIN_LED_HEAT_BLUE        25 //GPIO27
@@ -32,61 +54,54 @@ MyButton *myButtonReset = NULL;
 //Pour la gestion du serveur ESP32
 #include "MyServer.h"
 MyServer *myServer = NULL;
-//DHT dht();
-TemperatureStub *myTemp;
+
 //Variable pour la connection Wifi
 const char *SSID = "SAC_";
 const char *PASSWORD = "sac_";
 
-char bufferTemperature[100];
-char bufferCompteur[100];
-int demarrageFoure = 0;
-float temp=0;
+char bufferTemperature[100];//le buffer permet de stocker la valeur de la température et de la convertir en string
+char bufferCompteur[100];//le buffer permet de stocker la valeur du compteur et de la convertir en string
+int demarrageFoure = 0; //C'est une variable qui prend la valeur 7 si le four est démarré
+float temperature=0.0f;//la température du sensor dht22
+bool demarrerFour = false; //Elle permet de savoir si le four est démarré. Si true alors le four est démarré
+bool lireTemperature = false; //La temperature est lue si elle est true
+int compteur = 20; //Le compteur de temps
+const float temperatureMax = 27.5f; //La température maximale
+const float temperatureMin = 22.5f; //La température minimale
 
-
-bool demarrerFour = false;
-bool lireTemperature = false;
-int compteur = 20;
 String ssIDRandom;
 
 //fonction statique qui permet aux objets d'envoyer des messages (callBack) 
 //  arg0 : Action 
 // arg1 ... : Parametres
 std::string CallBackMessageListener(string message) {
-
-  
-  
     while(replaceAll(message, std::string("  "), std::string(" ")));
     //Décortiquer le message
     string actionToDo = getValue(message, ' ', 0);
     string arg1 = getValue(message, ' ', 1);
-    
     
     if (string(actionToDo.c_str()).compare(string("askTempFour")) == 0) {
       if (lireTemperature == true)
       {
         return(bufferTemperature); 
       }
-    
     }
-    
+
     if (string(actionToDo.c_str()).compare(string("startAction")) == 0) {
       demarrerFour = true;
       demarrageFoure = 7;
       return("");
     }
+
     if (string(actionToDo.c_str()).compare(string("askCompteur")) == 0) {
       if (demarrageFoure == 7)
       {
         return(bufferCompteur);
-      }else
-      {
+      }
         sprintf(bufferCompteur, "%d", 20);
         return(bufferCompteur);
-      }
         
     }
-  
     std::string result = "";
     return result;
     }
@@ -98,6 +113,12 @@ void setup() {
     pinMode(GPIO_PIN_LED_LOCK_ROUGE, OUTPUT);
     pinMode(GPIO_PIN_LED_OK_GREEN, OUTPUT);
     pinMode(GPIO_PIN_LED_HEAT_BLUE, OUTPUT);
+
+
+     // initialisation de l'écran oled
+    myOled = new MyOled(&twi, RST, SCREEN_HEIGHT, SCREEN_WIDTH);
+    myOled->init(0x3C,true);
+    //myOled->print("SAC_");
   
    lireTemperature=true;
  //Connection au WifiManager
@@ -119,7 +140,7 @@ char strToPrint[128];
         Serial.println("Erreur de connexion.");
         }
     else {
-            for (size_t i = 0; i < 3; i++)
+            for (size_t i = 0; i < 2; i++)
             {
                 digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, HIGH);
                 digitalWrite(GPIO_PIN_LED_OK_GREEN, HIGH);
@@ -131,22 +152,29 @@ char strToPrint[128];
                 delay(1000);
             }
             
+            //Affichage de l'accès du reseau wifi sur l'ecran oled
+            myOledViewWifiAp = new MyOledViewWifiAp();
+            myOledViewWifiAp->setNomDuSysteme(stringRandom.c_str());
+            myOledViewWifiAp->setSsIDDuSysteme(ssIDRandom.c_str());
+            myOledViewWifiAp->setPasseDuSysteme(ssIDRandom.c_str());
+            //myOled->displayView(myOledViewWifiAp);
+            
           Serial.println("Connexion Établie.");
         }
 
-//gestion des boutons
+    //gestion des boutons
     myButtonReset = new MyButton();         //Pour lire le bouton hard reset
     myButtonReset->init(T9);
     int sensibilisationButtonReset = myButtonReset->autoSensibilisation();
     
-
-    
-    
     //température
     myTemp = new TemperatureStub();
-    myTemp->init(27, DHT22);
+    myTemp->init(DHTPIN, DHT22);
+
+   
+
     // ----------- Routes du serveur ----------------
-    myServer = new MyServer(80);
+    myServer = new MyServer(PORT);
     myServer->initAllRoutes();
     myServer->initCallback(&CallBackMessageListener);
 
@@ -155,22 +183,24 @@ char strToPrint[128];
 void loop() {
   if (lireTemperature == true)
   {
-    temp = myTemp->getTemperature();
+    temperature = myTemp->getTemperature();
     delay(1000);
-    sprintf(bufferTemperature, "%4.1f °C", temp);
-    Serial.println(bufferTemperature);
+    sprintf(bufferTemperature, "%4.1f °C", temperature);
+    //Serial.println(bufferTemperature);
     
   }
+  Serial.println(demarrageFoure);
   if(demarrageFoure == 7){
-    while (compteur>0)
+    while (compteur>=0)
     {
-      if ((24.5 >= temp) && (temp >= 22.5))
+      if ((temperatureMax >= temperature) && (temperatureMin >= 22.5))
       {
         delay(1000);
         compteur--;
         sprintf(bufferCompteur, "%d", compteur);
       }
       sprintf(bufferCompteur, "%d", compteur);
+      Serial.println(compteur);
       
       
     }
@@ -178,7 +208,9 @@ void loop() {
       demarrageFoure = 0;
       compteur = 20;
     }
+    
   }
+  
       
   
   //int buttonActionT8 = myButtonT8->checkMyButton();
