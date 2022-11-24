@@ -6,27 +6,24 @@
 */
 
 #include <Arduino.h> 
-#include "MyOledViewWifiAp.h"
+#include "MyOledViewErrorWifiConnexion.h"
 using namespace std;
 
-void MyOledViewWifiAp::setNomDuSysteme(string val) {
+void MyOledViewErrorWifiConnexion::setNomDuSysteme(string val) {
     nomDuSysteme = val;
 }
-void MyOledViewWifiAp::setSsIDDuSysteme(string val) {
-    ssIDDuSysteme = val;
-}
-void MyOledViewWifiAp::setPasseDuSysteme(string val) {
-    passeDuSysteme = val;
-}
-  void MyOledViewWifiAp::display(Adafruit_SSD1306 *adafruit) {
-    
+void MyOledViewErrorWifiConnexion::display(Adafruit_SSD1306 *adafruit) {
     adafruit->setTextColor(WHITE);
-    
     adafruit->clearDisplay();
     adafruit->setTextSize(2);
     adafruit->setCursor(0, 0);
     adafruit->print("SAC System");
    
+
+    adafruit->setTextSize(2);
+    adafruit->setCursor(0, 10);
+    adafruit->print("nomDuSysteme");
+
     adafruit->setTextSize(1);
     adafruit->setCursor(0, 20);
     adafruit->print("Id: ");
@@ -34,18 +31,10 @@ void MyOledViewWifiAp::setPasseDuSysteme(string val) {
     
     adafruit->setCursor(0, 30);
     adafruit->print("AP Configuration");
-
-    adafruit->setCursor(20, 40);
-    adafruit->print("SSID: ");
-    adafruit->print(ssIDDuSysteme.c_str());
-
-    adafruit->setCursor(20, 50);
-    adafruit->print("PASS: ");
-    adafruit->print(passeDuSysteme.c_str());
-
+    
     adafruit->display();
 }
-void MyOledViewWifiAp::update(Adafruit_SSD1306 *adafruit) {
+void MyOledViewErrorWifiConnexion::update(Adafruit_SSD1306 *adafruit) {
     adafruit->clearDisplay();
     adafruit->setTextSize(1);
     adafruit->setTextColor(WHITE);

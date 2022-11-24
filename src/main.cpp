@@ -15,16 +15,16 @@ const byte PORT = 80;
 
 #include "MyOled.h"
 MyOled *myOled = NULL;
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-uint8_t RST=4;
-TwoWire twi = TwoWire(1);
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-
 
 #include "MyOledViewWifiAp.h"
 MyOledViewWifiAp *myOledViewWifiAp = NULL;
-Adafruit_SSD1306 *adafruit = NULL;
+
+uint8_t addrI2C = 0x3C;
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+uint8_t RST=-1;
+
 using namespace std;
 
 #include <HTTPClient.h>
@@ -109,17 +109,19 @@ std::string CallBackMessageListener(string message) {
 void setup() { 
     Serial.begin(9600);
     delay(100);
+
+    //initialisation de myOledViewWifiAp
+   myOledViewWifiAp = new MyOledViewWifiAp();
+ 
+  // initialisation de l'écran oled
+    myOled = new MyOled(&Wire, RST,SCREEN_HEIGHT, SCREEN_WIDTH);
+    myOled->init(addrI2C,true);
+
     //Initialisation des LED statuts
     pinMode(GPIO_PIN_LED_LOCK_ROUGE, OUTPUT);
     pinMode(GPIO_PIN_LED_OK_GREEN, OUTPUT);
     pinMode(GPIO_PIN_LED_HEAT_BLUE, OUTPUT);
 
-
-     // initialisation de l'écran oled
-    myOled = new MyOled(&twi, RST, SCREEN_HEIGHT, SCREEN_WIDTH);
-    myOled->init(0x3C,true);
-    //myOled->print("SAC_");
-  
    lireTemperature=true;
  //Connection au WifiManager
     String ssIDRandom, PASSRandom;
@@ -137,8 +139,14 @@ char strToPrint[128];
 
 
  if (!wm.autoConnect(ssIDRandom.c_str(), PASSRandom.c_str())){
-        Serial.println("Erreur de connexion.");
-        }
+       
+            //Affichage de l'accès du reseau wifi sur l'ecran oled
+            myOledViewWifiAp->setNomDuSysteme(stringRandom.c_str());
+            myOledViewWifiAp->setSsIDDuSysteme(ssIDRandom.c_str());
+            myOledViewWifiAp->setPasseDuSysteme(PASSRandom.c_str());
+            myOled->displayView(myOledViewWifiAp);
+            Serial.println("Erreur de connexion.");
+         }
     else {
             for (size_t i = 0; i < 2; i++)
             {
@@ -152,17 +160,15 @@ char strToPrint[128];
                 delay(1000);
             }
             
-            //Affichage de l'accès du reseau wifi sur l'ecran oled
-            myOledViewWifiAp = new MyOledViewWifiAp();
-            myOledViewWifiAp->setNomDuSysteme(stringRandom.c_str());
-            myOledViewWifiAp->setSsIDDuSysteme(ssIDRandom.c_str());
-            myOledViewWifiAp->setPasseDuSysteme(ssIDRandom.c_str());
-            //myOled->displayView(myOledViewWifiAp);
+           
             
           Serial.println("Connexion Établie.");
         }
-
     //gestion des boutons
+    myButtonAction = new MyButton();        //Pour lire le bouton actions
+    myButtonAction->init(T8);
+    int sensibilisationButtonAction = myButtonAction->autoSensibilisation();
+    
     myButtonReset = new MyButton();         //Pour lire le bouton hard reset
     myButtonReset->init(T9);
     int sensibilisationButtonReset = myButtonReset->autoSensibilisation();
@@ -212,13 +218,22 @@ void loop() {
   }
   
       
-  
   //int buttonActionT8 = myButtonT8->checkMyButton();
-  int buttonReset = myButtonReset->checkMyButton();
-  if(buttonReset > 2){
+  int buttonAction  = myButtonAction->checkMyButton();
+  if(buttonAction  > 2){
     Serial.println("Button Action pressed");
     //ledOn = false;
   }
+  //Gestion du bouton Reset
+    int buttonReset = myButtonReset->checkMyButton();
+  if(buttonReset > 2)  {  //Si appuyé plus de 30 secondes
+        Serial.println("Button Reset pressed\n");
+        //Le bouton hard reset a été appuyé
+        Serial.println("Button Hard reset pressed\n");
+        Serial.println("Suppression des réglages et redémarrage...\n");
+        ///wm.resetSettings();
+        ///ESP.restart();
+    }
   
       delay(500);
   }
