@@ -14,5 +14,5 @@
 - les leds
 - un esp32
 
-#Plate forme utilisée
-plateforme.ini
+#Platform utilis
+platformio.ini
