@@ -22,8 +22,8 @@
 #define MYOLEDVIEWWIFIAP_H
 
 #include <Adafruit_SSD1306.h>
-#include "MyOled.h"
-
+//#include "MyOled.h"
+#include "MyOledView.h"
 using namespace std;
 
 class MyOledViewWifiAp: public MyOledView{

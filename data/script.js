@@ -33,6 +33,8 @@ function getFromESP_getWoodCaracteristiques(){
       document.getElementById("origineBois").innerHTML = data[0].origine;
       document.getElementById("tempsBois").innerHTML = data[0].temps;
       document.getElementById("temperatureBois").innerHTML = data[0].temperature;
+      document.getElementById("tempsDeSechage").innerHTML = data[0].temps;
+      document.getElementById("temperatureMin").innerHTML = data[0].temperature;
     }
   }
   xhttp.open("POST", "getCaracteristiqueBois", true);
@@ -60,6 +62,8 @@ function doAction(actionToDo) {
     xhttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
     xhttp.send(params);
 }
+
+
 //la foncion permet de compter l temps de sechage
 setInterval(function getCompteur(){
     var xhttp = new XMLHttpRequest();

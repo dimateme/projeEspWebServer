@@ -22,13 +22,16 @@
 #define MYOLEDVIEWWORKINGOFF_H
 
 #include <Adafruit_SSD1306.h>
-#include "MyOledView.h"
+#include "MyOledViewWorking.h"
 #include <string>
-class MyOledViewWorkingOFF: public MyOledView{
+using namespace std;
+class MyOledViewWorkingOFF: public MyOledViewWorking{
 private:
     /* Methode */
     void display(Adafruit_SSD1306 *adafruit);
+    
 public:
+  
 };
 #endif
 

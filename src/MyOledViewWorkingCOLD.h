@@ -22,9 +22,9 @@
 #define MYOLEDVIEWWORKINGCOLD_H
 
 #include <Adafruit_SSD1306.h>
-#include "MyOledView.h"
+#include "MyOledViewWorking.h"
 #include <string>
-class MyOledViewWorkingCOLD: public MyOledView{
+class MyOledViewWorkingCOLD: public MyOledViewWorking{
 private:
     /* methode */
     void display(Adafruit_SSD1306 *adafruit);

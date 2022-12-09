@@ -22,14 +22,14 @@
 #define MYOLEDVIEWWORKINGHEAT_H
 
 #include <Adafruit_SSD1306.h>
-#include "MyOledView.h"
+#include "MyOledViewWorking.h"
 #include <string>
-class MyOledViewWorkingHEAT: public MyOledView{
+class MyOledViewWorkingHEAT: public MyOledViewWorking{
 private:
     /* data */
     void display(Adafruit_SSD1306 *adafruit);
     void update(Adafruit_SSD1306 *adafruit);
 public:
-
+    void aniamtion(Adafruit_SSD1306 *adafruit);
 };
 #endif

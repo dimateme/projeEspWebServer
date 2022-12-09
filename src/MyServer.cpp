@@ -81,7 +81,6 @@ void MyServer::initAllRoutes() {
         String id =""; 
         if (request->hasParam("actionBoisId", true)) {
             id = request->getParam("actionBoisId", true)->value();
-            Serial.println(id);
         }
         if(id!=""){
             HTTPClient http;
@@ -89,7 +88,24 @@ void MyServer::initAllRoutes() {
             http.begin(apiRestAddress);
             http.GET();
             String response = http.getString();
-            
+            //nouveau
+            String response2 = response;
+            char json[500];
+            response2.replace(" ","");
+            response2.replace("\n","");
+            response2.trim();
+            response2.remove(0,1);
+            response2.toCharArray(json, 100);
+            DynamicJsonDocument doc(1024);
+            deserializeJson(doc, json);
+            String temps = doc["temps"];
+            String temperature = doc["temperature"];
+            string repString = "";
+            String stringToSend = "tellCaracteristique ";
+            stringToSend +=String("temperature") +String(" ") +temperature + String(" ");
+            stringToSend +=String("temps") + String(" ") + temps + String(" ");
+                
+            if (ptrToCallBackFunction) repString = (*ptrToCallBackFunction)(stringToSend.c_str());
             request->send(200, "text/plain", response);
             
         }
