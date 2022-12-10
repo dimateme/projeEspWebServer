@@ -28,7 +28,7 @@ void MyOledViewWorkingHEAT::display(Adafruit_SSD1306 *adafruit) {
     adafruit->setTextSize(2);
     adafruit->setCursor(10, 30);
     adafruit->print(getTag("temperature").c_str());
-    //displayGifFire(adafruit, 20, 50);
+
     adafruit->setTextSize(1);
     adafruit->setCursor(30, 50);
     adafruit->print(getTag("ipDuSysteme").c_str());

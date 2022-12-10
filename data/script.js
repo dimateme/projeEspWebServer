@@ -1,6 +1,5 @@
 
 //fonction qui permet de recuperer les données de l'api
-
 function getFromESP_getWoodOptions(){
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
@@ -18,7 +17,7 @@ function getFromESP_getWoodOptions(){
   xhttp.open("GET", "getAllWoodOptions", true);
   xhttp.send();
 }
-
+//fonction qui permet de recuperer les caractéristiques du bois
 function getFromESP_getWoodCaracteristiques(){
   var boisId = document.getElementById("liste_bois").value;
   console.log(boisId);
@@ -64,7 +63,7 @@ function doAction(actionToDo) {
 }
 
 
-//la foncion permet de compter l temps de sechage
+//la foncion qui permet de compter le temps de sechage
 setInterval(function getCompteur(){
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -86,8 +85,7 @@ setInterval(function getCompteur(){
      if (value == '') {
        restoreOptions();
      } else {
-       // Loop backwards through options as removing them modifies the next
-       // to be visited if go forwards
+       
        for (var i=sel.options.length-1; i>=0; i--) {
          opt = sel.options[i];
          if (opt.text.toLowerCase().indexOf(value) == -1){
@@ -108,7 +106,6 @@ function restoreOptions(){
   
   
   window.onload = function() {
-    // Load cache
     var sel = document.getElementById('liste_bois');
     for (var i=0, iLen=sel.options.length; i<iLen; i++) {
       optionsCache.push(sel.options[i]);

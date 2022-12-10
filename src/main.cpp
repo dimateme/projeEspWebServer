@@ -1,3 +1,9 @@
+/**
+    Gestion du main.cpp
+    @file main.cpp
+    @author Jean paul Bai
+    @version 1.0 21/09/22
+*/
 #include <Arduino.h>
 #include <iostream>
 #include <string>
@@ -9,11 +15,9 @@
 #include <string>
 #include "myFunctions.cpp" //fonctions utilitaires
 
-//test oled
-#include <Adafruit_SSD1306.h>
-
 const byte PORT = 80;
 
+#include <Adafruit_SSD1306.h>
 #include "MyOled.h"
 MyOled *myOled = NULL;
 
@@ -21,7 +25,6 @@ MyOled *myOled = NULL;
 MyOledViewWifiAp *myOledViewWifiAp = NULL;
 
 uint8_t addrI2C = 0x3C;
-
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 uint8_t RST=-1;
@@ -40,14 +43,14 @@ MyOledViewWorkingCOLD *myOledViewWorkingCOLD = NULL;
 #include "MyOledViewWorkingHEAT.h"
 MyOledViewWorkingHEAT *myOledViewWorkingHEAT = NULL;
 
+#include "MyOledViewInitialisation.h"
+MyOledViewInitialisation *myOledViewInitialisation = NULL;
+
 //sensor dhht22
 #include <DHT.h>
 #define DHTPIN 27
 #define DHTTYPE    DHT22
 TemperatureStub *myTemp;
-
-#include "MyOledViewInitialisation.h"
-MyOledViewInitialisation *myOledViewInitialisation = NULL;
 
 //Pour la gestion des boutons
 #include "MyButton.h"
@@ -63,7 +66,7 @@ MyOledViewWorkingOFF *myOledViewWorkingOFF = NULL;
 //Définition des trois leds
 #define GPIO_PIN_LED_LOCK_ROUGE         12 //GPIO12
 #define GPIO_PIN_LED_OK_GREEN             26 //GPIO14
-#define GPIO_PIN_LED_HEAT_BLUE        25 //GPIO27
+#define GPIO_PIN_LED_HEAT_YELLOW        25 //GPIO27
  
 
 //Pour la gestion du serveur ESP32
@@ -76,7 +79,6 @@ const char *PASSWORD = "sac_";
 
 String nomDuSyteme = "SAC System";
 String iDDuSyteme = "SD777";
-String ipDuSyteme = "172.16.11.224";
 String idDuSysteme = "92894";
 String statusDuSyteme = "";
 
@@ -84,14 +86,15 @@ char bufferTemperature[100];//le buffer permet de stocker la valeur de la tempé
 char bufferCompteur[100];//le buffer permet de stocker la valeur du compteur et de la convertir en string
 int demarrageFoure = 0; //C'est une variable qui prend la valeur 7 si le four est démarré
 float temperature=0.0f;//la température du sensor dht22
-bool demarrerFour = false; //Elle permet de savoir si le four est démarré. Si true alors le four est démarré
-bool lireTemperature = false; //La temperature est lue si elle est true
+bool demarrerFour = false; //Elle permet de savoir si le four est démarré. Si vrai alors le four est démarré
+bool lireTemperature = false; //La temperature est lue si elle est vraie
 int compteur = 0; //Le compteur de temps
 float temperatureMax = 0.0f; //La température maximale
- float temperatureMin = 0.0f; //La température minimale
-int tempsDeSechage=0;
-bool etatChauffage = false; //Elle permet de savoir si le four est démarré. Si true alors le four est démarré
-float temperatureSechage=0.0f;
+float temperatureMin = 0.0f; //La température minimale
+int tempsDeSechage=0; //Le temps de sechage d'un bois envoyé par le serveur
+bool etatChauffage = false; //Elle permet de gérer les leds avec l'état du chauffage
+float temperatureSechage=0.0f; //La température de sechage obtenur par le serveur
+
 
 String ssIDRandom;
 
@@ -117,7 +120,7 @@ std::string CallBackMessageListener(string message) {
 
     if (string(actionToDo.c_str()).compare(string("startAction")) == 0) {
       demarrerFour = true;
-      demarrageFoure = 7;
+      demarrageFoure = 7; //C'est une variable qui prend la valeur 7 si le four est démarré
       return("");
     }
 
@@ -131,8 +134,8 @@ std::string CallBackMessageListener(string message) {
         
     }
     
-    char bufferTemperatureSechage[100];
-    char buffertempsDeSechage[100];
+    char bufferTemperatureSechage[100];//le buffer permet de stocker la valeur de la température du bois et de la convertir en string
+    char buffertempsDeSechage[100]; //le buffer permet de stocker la valeur du temps de sechage du bois et de la convertir en string
    
     if (string(actionToDo.c_str()).compare(string("tellCaracteristique")) == 0)
     {
@@ -140,10 +143,6 @@ std::string CallBackMessageListener(string message) {
       temperatureSechage =atof(bufferTemperatureSechage);
       sprintf(buffertempsDeSechage, "%s", arg4.c_str());
       tempsDeSechage=atoi(buffertempsDeSechage);
-      //Serial.println(temperatureBois);
-      //Serial.println(buffertempsDeSechage);
-      
-      /* code */
     }
     
     std::string result = "";
@@ -152,11 +151,11 @@ std::string CallBackMessageListener(string message) {
 
 void afficherOledOff();
 void afficherOledApresDemarrageButton();
+
 void setup() { 
     Serial.begin(9600);
     delay(100);
 
-   etatChauffage = false;
     //initialisation de myOledViewWifiAp
    myOledViewWifiAp = new MyOledViewWifiAp();
  
@@ -164,10 +163,10 @@ void setup() {
     myOled = new MyOled(&Wire, RST,SCREEN_HEIGHT, SCREEN_WIDTH);
     myOled->init(addrI2C,true);
 
-    //Initialisation des LED statuts
+    //Initialisation des leds 
     pinMode(GPIO_PIN_LED_LOCK_ROUGE, OUTPUT);
     pinMode(GPIO_PIN_LED_OK_GREEN, OUTPUT);
-    pinMode(GPIO_PIN_LED_HEAT_BLUE, OUTPUT);
+    pinMode(GPIO_PIN_LED_HEAT_YELLOW, OUTPUT);
 
     lireTemperature=true; // si la variable est true alors la temperature est lue par le sensor dht22
  
@@ -207,7 +206,7 @@ char strToPrint[128];
 
  if (!wm.autoConnect(ssIDRandom.c_str(), PASSRandom.c_str())){
        
-            //Affichage de l'accès du reseau wifi sur l'ecran oled
+            //Affichage de l'accès du reseau wifi sur l'ecran oled si la connection au wifiManager n'est pas établie
             myOledViewWifiAp->setNomDuSysteme(nomDuSyteme.c_str());
             myOledViewWifiAp->setSsIDDuSysteme(ssIDRandom.c_str());
             myOledViewWifiAp->setPasseDuSysteme(PASSRandom.c_str());
@@ -219,30 +218,25 @@ char strToPrint[128];
             {
                 digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, HIGH);
                 digitalWrite(GPIO_PIN_LED_OK_GREEN, HIGH);
-                digitalWrite(GPIO_PIN_LED_HEAT_BLUE, HIGH);
+                digitalWrite(GPIO_PIN_LED_HEAT_YELLOW, HIGH);
                 delay(1000);
                 digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, LOW);
                 digitalWrite(GPIO_PIN_LED_OK_GREEN, LOW);
-                digitalWrite(GPIO_PIN_LED_HEAT_BLUE, LOW);
+                digitalWrite(GPIO_PIN_LED_HEAT_YELLOW, LOW);
                 delay(1000);
             }
            
           Serial.println("Connexion Établie.");
         }
 
-    
-    
-
-    //température
+    //Gestion de la temperature
     myTemp = new TemperatureStub();
     myTemp->init(DHTPIN, DHT22);
     temperature = myTemp->getTemperature();
     sprintf(bufferTemperature, "%4.1f", temperature);
+
    //Affichage Oled en mode ready
     myOledViewWorkingOFF = new MyOledViewWorkingOFF();
-    
-    //delay(1000);
-
 
     myOledViewWorkingCOLD = new MyOledViewWorkingCOLD();
     
@@ -277,7 +271,7 @@ void loop() {
   }
   //Gestion du bouton Reset
     int buttonReset = myButtonReset->checkMyButton();
-  if(buttonReset > 2)  {  //Si appuyé plus de 30 secondes
+  if(buttonReset > 2)  {  
         Serial.println("Button Reset pressed\n");
         //Le bouton hard reset a été appuyé
         Serial.println("Button Hard reset pressed\n");
@@ -289,15 +283,13 @@ void loop() {
   }
 
 
-  void afficherOledOff(){
+  void afficherOledOff(){//Affichage Oled en mode ready
     if (demarrageFoure==0)
     {
       digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, HIGH);
       digitalWrite(GPIO_PIN_LED_OK_GREEN, LOW);
-      digitalWrite(GPIO_PIN_LED_HEAT_BLUE, LOW);
+      digitalWrite(GPIO_PIN_LED_HEAT_YELLOW, LOW);
     }
-    
-    
     myOledViewWorkingOFF->setParams("nomDuSysteme",nomDuSyteme.c_str());  
     myOledViewWorkingOFF->setParams("idDuSysteme",idDuSysteme.c_str());
     myOledViewWorkingOFF->setParams("temperature",bufferTemperature);
@@ -306,17 +298,16 @@ void loop() {
     myOled->displayView(myOledViewWorkingOFF);
     
   }
-  void afficherOledApresDemarrageButton(){
+  void afficherOledApresDemarrageButton(){//Achichage Oled après demarrage du bouton
+
       if (demarrageFoure == 7)
       {
-        if(temperature >= temperatureMin){
-            if (etatChauffage==false)
-            {
-              digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, LOW);
-              digitalWrite(GPIO_PIN_LED_OK_GREEN, LOW);
-              digitalWrite(GPIO_PIN_LED_HEAT_BLUE, HIGH);
-            }
-            
+        etatChauffage=true;
+        if(temperature >= temperatureMin){//Si la temperature est supérieur ou égal à la temperature minimale.
+            etatChauffage = false;
+            digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, LOW);
+            digitalWrite(GPIO_PIN_LED_OK_GREEN, LOW);
+            digitalWrite(GPIO_PIN_LED_HEAT_YELLOW, HIGH);
             myOledViewWorkingHEAT->setParams("nomDuSysteme",nomDuSyteme.c_str());
             myOledViewWorkingHEAT->setParams("idDuSysteme",idDuSysteme.c_str());
             myOledViewWorkingHEAT->setParams("temperature",bufferTemperature);
@@ -324,13 +315,25 @@ void loop() {
             myOledViewWorkingHEAT->setParams("ipDuSysteme",WiFi.localIP().toString().c_str());
             myOled->displayView(myOledViewWorkingHEAT);
             myOled->veilleExit();
+            if (compteur<=tempsDeSechage){
+                    compteur++;
+                    delay(200);
+                    sprintf(bufferCompteur, "%d", compteur);
+              }
+
+            if (compteur > tempsDeSechage){
+                      demarrageFoure = 0;
+                      compteur = 0;
+                     
+            }
             
         }
-        if((temperature >= temperatureSechage)){
-                etatChauffage=true;
-                digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, LOW);
+        if((temperature >= temperatureSechage)){//Si la temperature est supérieur ou égal à la temperature de sechage du bois venant du serveur.
+                
+                etatChauffage = true;
                 digitalWrite(GPIO_PIN_LED_OK_GREEN, HIGH);
-                digitalWrite(GPIO_PIN_LED_HEAT_BLUE, LOW);
+                digitalWrite(GPIO_PIN_LED_LOCK_ROUGE, LOW);
+                digitalWrite(GPIO_PIN_LED_HEAT_YELLOW, LOW);
                 myOledViewWorkingHEAT->setParams("nomDuSysteme",nomDuSyteme.c_str());
                 myOledViewWorkingHEAT->setParams("idDuSysteme",idDuSysteme.c_str());
                 myOledViewWorkingHEAT->setParams("temperature",bufferTemperature);
@@ -354,7 +357,7 @@ void loop() {
             
           }
           
-          if (temperatureMin > temperature){
+          if (temperatureMin > temperature){//Si la temperature est inférieur à la temperature seuil minimale.
             compteur=0;
             demarrageFoure = 0;
             myOledViewWorkingCOLD->setParams("nomDuSysteme",nomDuSyteme.c_str());
@@ -363,29 +366,23 @@ void loop() {
             myOledViewWorkingCOLD->setParams("statusDuSysteme","COLD");
             myOledViewWorkingCOLD->setParams("ipDuSysteme",WiFi.localIP().toString().c_str());
             myOled->displayView(myOledViewWorkingCOLD);
-            //myOled->veilleDelay(10);
+            
           }
           
-          if (temperatureMax < temperature)
-          {
-  
+          if (temperatureMax < temperature){//Si la temperature est supérieur à la temperature seuil maximale.
+           
             myOledViewWorkingHEAT->setParams("nomDuSysteme",nomDuSyteme.c_str());
             myOledViewWorkingHEAT->setParams("idDuSysteme",idDuSysteme.c_str());
             myOledViewWorkingHEAT->setParams("temperature",bufferTemperature);
             myOledViewWorkingHEAT->setParams("statusDuSysteme","Heating");
             myOledViewWorkingHEAT->setParams("ipDuSysteme",WiFi.localIP().toString().c_str());
             myOled->displayView(myOledViewWorkingHEAT);
-            sprintf(bufferCompteur, "%d", compteur);
           }
           
       }
       
-      
-      //ici c'est pour afficher la temperature :test
       temperature = myTemp->getTemperature();
       sprintf(bufferTemperature, "%4.1f", temperature);
-      
-      
       
       
     }

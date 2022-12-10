@@ -1,8 +1,8 @@
 /**
     Gestion d'un serveur WEB
     @file MyServer.cpp
-    @author Alain Dubé
-    @version 1.1 20/11/20 
+    @author Jean paul Bai
+    @version 1.0 20/09/22
 */
 #include <Arduino.h>
 #include "MyServer.h"
@@ -53,6 +53,7 @@ void MyServer::initAllRoutes() {
         String lireTempDuFour =String(repString.c_str());
         request->send(200, "text/plain", lireTempDuFour );
     });
+    //demarrer le four
     this->on("/DemarrerFour", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (request->hasParam("actionToDo", true)) {
             String actionToDo = request->getParam("actionToDo", true)->value();
@@ -69,6 +70,7 @@ void MyServer::initAllRoutes() {
             String getCompteur =String(repString.c_str());
             request->send(200, "text/plain", getCompteur );
     });
+    //recuperer la liste des bois
     this->on("/getAllWoodOptions", HTTP_GET, [](AsyncWebServerRequest *request) {
         HTTPClient http;
         String apiRestAddress="http://51.79.50.149:3000/typebois/nom";//api renvoie la liste des bois
@@ -77,6 +79,7 @@ void MyServer::initAllRoutes() {
         String response = http.getString();
        request->send(200, "text/plain", response);
     });
+    //recuperer les caracteristiques du bois
     this->on("/getCaracteristiqueBois", HTTP_POST, [](AsyncWebServerRequest *request) {
         String id =""; 
         if (request->hasParam("actionBoisId", true)) {
